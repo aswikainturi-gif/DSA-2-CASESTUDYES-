@@ -1,0 +1,255 @@
+public class RankAugmentedAVL {
+
+    static class RankNode {
+        int key;
+        int height;
+        int size;
+        RankNode left, right;
+
+        RankNode(int key) {
+            this.key = key;
+            this.height = 1;
+            this.size = 1;
+        }
+    }
+
+    static int height(RankNode n) {
+        return (n == null) ? 0 : n.height;
+    }
+
+    static int size(RankNode n) {
+        return (n == null) ? 0 : n.size;
+    }
+
+    static void update(RankNode n) {
+        if (n != null) {
+            n.height = 1 + Math.max(height(n.left), height(n.right));
+            n.size = 1 + size(n.left) + size(n.right);
+        }
+    }
+
+    static int getBalance(RankNode n) {
+        return (n == null) ? 0 : height(n.left) - height(n.right);
+    }
+
+    static RankNode rightRotate(RankNode y) {
+        RankNode x = y.left;
+        RankNode t2 = x.right;
+
+        x.right = y;
+        y.left = t2;
+
+        update(y);
+        update(x);
+
+        return x;
+    }
+
+    static RankNode leftRotate(RankNode x) {
+        RankNode y = x.right;
+        RankNode t2 = y.left;
+
+        y.left = x;
+        x.right = t2;
+
+        update(x);
+        update(y);
+
+        return y;
+    }
+
+    static RankNode insert(RankNode node, int key) {
+
+        if (node == null)
+            return new RankNode(key);
+
+        if (key < node.key)
+            node.left = insert(node.left, key);
+        else if (key > node.key)
+            node.right = insert(node.right, key);
+        else
+            return node;
+
+        update(node);
+
+        int balance = getBalance(node);
+
+        // LL
+        if (balance > 1 && key < node.left.key)
+            return rightRotate(node);
+
+        // RR
+        if (balance < -1 && key > node.right.key)
+            return leftRotate(node);
+
+        // LR
+        if (balance > 1 && key > node.left.key) {
+            node.left = leftRotate(node.left);
+            return rightRotate(node);
+        }
+
+        // RL
+        if (balance < -1 && key < node.right.key) {
+            node.right = rightRotate(node.right);
+            return leftRotate(node);
+        }
+
+        return node;
+    }
+
+    static RankNode minValueNode(RankNode node) {
+        RankNode current = node;
+
+        while (current.left != null)
+            current = current.left;
+
+        return current;
+    }
+
+    static RankNode delete(RankNode root, int key) {
+
+        if (root == null)
+            return root;
+
+        if (key < root.key)
+            root.left = delete(root.left, key);
+
+        else if (key > root.key)
+            root.right = delete(root.right, key);
+
+        else {
+
+            if ((root.left == null) || (root.right == null)) {
+
+                RankNode temp;
+
+                if (root.left != null)
+                    temp = root.left;
+                else
+                    temp = root.right;
+
+                if (temp == null) {
+                    root = null;
+                } else {
+                    root = temp;
+                }
+            } else {
+
+                RankNode temp = minValueNode(root.right);
+
+                root.key = temp.key;
+
+                root.right = delete(root.right, temp.key);
+            }
+        }
+
+        if (root == null)
+            return root;
+
+        update(root);
+
+        int balance = getBalance(root);
+
+        // LL
+        if (balance > 1 && getBalance(root.left) >= 0)
+            return rightRotate(root);
+
+        // LR
+        if (balance > 1 && getBalance(root.left) < 0) {
+            root.left = leftRotate(root.left);
+            return rightRotate(root);
+        }
+
+        // RR
+        if (balance < -1 && getBalance(root.right) <= 0)
+            return leftRotate(root);
+
+        // RL
+        if (balance < -1 && getBalance(root.right) > 0) {
+            root.right = rightRotate(root.right);
+            return leftRotate(root);
+        }
+
+        return root;
+    }
+
+    /*
+      Rank:
+      Highest score = Rank 1
+
+      Formula:
+      rank = size(right subtree) + 1
+      while moving left add:
+      size(right subtree)+1
+    */
+    static int rankOf(RankNode root, int key) {
+
+        int rank = 1;
+
+        while (root != null) {
+
+            if (key > root.key) {
+
+                rank += size(root.right) + 1;
+                root = root.left;
+
+            } else if (key < root.key) {
+
+                root = root.right;
+
+            } else {
+
+                rank += size(root.right);
+                return rank;
+            }
+        }
+
+        return -1;
+    }
+
+    static void inorder(RankNode root) {
+        if (root == null)
+            return;
+
+        inorder(root.left);
+        System.out.println("Score = " + root.key +
+                " Size = " + root.size);
+        inorder(root.right);
+    }
+
+    public static void main(String[] args) {
+
+        int[] scores = {
+                820, 540, 910, 770, 880,
+                460, 990, 600, 730, 950, 510
+        };
+
+        RankNode root = null;
+
+        for (int x : scores)
+            root = insert(root, x);
+
+        System.out.println("Initial AVL Tree (Inorder)");
+        inorder(root);
+
+        System.out.println("\nRank of 770 = "
+                + rankOf(root, 770));
+
+        // Update 1
+        root = delete(root, 540);
+        root = insert(root, 815);
+
+        System.out.println("\nAfter 540 -> 815");
+        inorder(root);
+
+        // Update 2
+        root = delete(root, 910);
+        root = insert(root, 685);
+
+        System.out.println("\nAfter 910 -> 685");
+        inorder(root);
+
+        System.out.println("\nRank of 685 = "
+                + rankOf(root, 685));
+    }
+}
